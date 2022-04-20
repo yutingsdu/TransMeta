@@ -1,0 +1,221 @@
+#!/bin/bash
+shellpath=`dirname $0`
+output_dir=transmeta_outdir
+BamFiles="No_input"
+annotation="No_input"
+reference=Ref
+output_dir=transmeta_outdir
+IndexDir="NO_index"
+strand=unstranded
+thread=1
+MinAverageCov=0.03 #--min-average-junc-ratio 
+MinUnbalanceCov=0.03 #--min-unbalance-ratio
+Filter=0 # 0.5
+Gap=200 #--min-gap-length
+TransLen=500
+individual_coverage=1.5
+coverage=2
+usage()
+{
+cat << EOT
+===========================================================================
+
+TransMeta v.1.0 usage:
+
+** Required **
+
+--bam/-B <string>		: path to the file listing the alignments BAM files
+
+--strand/-s <string> 		: Strand-specific RNA-Seq reads orientation.
+
+              			   If reads are paired:
+				    1) Use <unstranded> to indicate RNA-seq reads are non-strand-specific.
+                		    2) Use <first> to indicate fr-first-stranded RNA-seq reads.
+               			    3) Use <second> to indicate fr-second-stranded RNA-seq reads.
+
+              			   If reads are single:
+                		    1) Use <single_unstranded> to indicate RNA-seq reads are non-strand-specific.
+                		    2) Use <single_forward> to indicate RNA-seq reads are forward.
+                		    3) Use <single_reverse> to indicate RNA-seq reads are reverse.
+
+---------------------------------------------------------------------------
+
+** Options **
+
+--help/-h			  : Output TransMeta Help Information.
+
+--version/-v			  : Print current version of TransMeta.
+
+--output_dir/-o <string>	  : Output path, default: transmeta_outdir.
+
+--min_meta_trans_cov/-c <float>	  : Minimum expression level estimated by abundance analysis for the meta_assembly, default: 2.0.
+				  (Please Note: TransMeta automatically outputs assemblies with different expression levels in the output_dir)
+
+--min_indiv_trans_cov/-i <float>  : Minimum expression level estimated by abundance analysis for the certain assembly of each sample, default: 1.5.
+
+--annotation_reference/-g <string>: reference annotation to use for guiding the assembly process (GTF).
+
+--min_trans_length/-L <int>   	  : Minimum assembled transcript length, default: 500.
+
+--min_average_frac/-d <float> 	  : Minimum junction coverage fraction by average junction coverage, default: 0.03.
+
+--min_unbalance_frac/-D <float>   : Minimum fraction of unbalanced junction, default: 0.03.
+
+--thread/-p <int> 		  : Number of threads to use default: 1.
+
+---------------------------------------------------------------------------
+
+** Typical commands **
+
+(i) A typical TransMeta command for paired-end data might be:
+
+  TransMeta -B bamFiles_list -s first -o TransMeta_outdir -p 25
+
+(ii) A typical TransMeta command for single-end data might be:
+
+  TransMeta -B bamFiles_list -s single_reverse -o TransMeta_outdir -p 25
+
+===========================================================================
+EOT
+}
+#usage
+
+# parse options:
+RET=`getopt -o hvB:o:g:s:d:D:L:e:c:p:i: \
+--long help,version,bam:,output_dir:,annotation:,\
+strand:,\
+min_average_frac:,min_unbalance_frag:,min_trans_length:,\
+min_gap_length:,min_meta_trans_cov:,min_indiv_trans_cov:,\
+thread:\
+  -n ' * ERROR' -- "$@"`
+
+
+# Note the quotes around $RET: they are essential!
+eval set -- "$RET"
+# set option values
+while true; do
+    case "$1" in
+        -h | --help ) usage; exit 1;;
+        -v | --version ) echo "** The current version of TransMeta is v.1.0 **"; exit 1;;
+        -o | --output_dir) output_dir=$2     
+			shift 2 ;;
+        -B | --bam) 	   BamFiles=$2 
+			shift 2 ;;
+	-g | --annotation_reference) 	   annotation=$2  
+			shift 2 ;;
+	-R | --ref_gtf) reference=$2  
+			shift 2 ;;
+	-s | --strand) 	   strand=$2  
+			shift 2 ;;
+	-d | --min_average_frac) MinAverageCov=$2 
+			shift 2 ;;
+	-D | --min_unbalance_frac) MinUnbalanceCov=$2
+			shift 2 ;;
+	-L | --min_trans_length) TransLen=$2 
+			shift 2 ;;
+	-e | --min_gap_length) Gap=$2 
+			shift 2 ;;
+	-c | --min_meta_trans_cov) coverage=$2 
+			shift 2 ;;
+	-i | --min_indiv_trans_cov) individual_coverage=$2 
+			shift 2 ;;
+	-p | --thread) thread=$2 
+			shift 2 ;;
+        -- ) shift; break ;;
+        * ) echoerror "internal error!" ; exit 1 ;;
+     esac
+done
+
+#echo $coverage $individual_coverage $annotation
+
+if [ $BamFiles == "No_input" ]; then
+         echo "    "
+         echo "[Error] : BAM list file is not provided!"
+         echo "    "
+	 usage
+         exit 1
+fi
+if [ ! -e $BamFiles ];then
+        echo " ** Error: BAM list file is not exist! **"
+        exit 1
+fi
+
+if [ $annotation != "No_input" -a ! -e $annotation ]; then
+        echo " ** Error: annotaion reference file is not exist! **"
+        exit 1
+fi
+
+if [ $strand != "first" ] && [ $strand != "second" ] && [ $strand != "unstranded" ] &&[ $strand != "single_forward" ] && [ $strand != "single_reverse" ] && [ $strand != "single_unstranded" ]; then
+    echo ""
+    echo "[Error] :  --strand/-s argument need to be either \"unstranded\", \"first\" or \"second\" for parired-end reads"
+    echo "            or \"single_unstranded\", \"single_forward\" or \"single_reverse\" for single-end reads" 
+    echo ""
+    exit 1
+fi
+MyDate=$(date "+%d/%m/%Y %T")
+if [ ! -x "$output_dir" ]; then  
+    mkdir $output_dir  
+else 
+    echo "[$MyDate] [Warning] : $output_dir exists already. It will be overwritten."
+    rm -rf $output_dir
+    mkdir $output_dir
+fi
+i=0
+j=0
+while read bam
+do
+    let i=i+1
+    echo $shellpath/src/bin/transmeta_graph -b $bam -s $strand -o $output_dir --suffix "bam"$i>> $output_dir/command
+    let x=$i%$thread
+    if [ $x = 0 ]; then
+        let j=j+1
+	#echo "* "$x $i $j
+	mv $output_dir/command $output_dir/command$j
+    fi
+
+    done < $BamFiles
+let j=j+1
+mv $output_dir/command $output_dir/command$j 2>$output_dir/log-temp
+
+for file_a in $output_dir/*;
+do
+ file=`basename $file_a`
+ P=${file:0:7}
+ if [ $P == "command" ]; then
+#   echo $file >>$output_dir/log
+   cat $output_dir/$file >>$output_dir/log
+   tmpfile=$$.fifo
+   mkfifo $tmpfile
+   exec 4<>$tmpfile
+   rm $tmpfile
+   for ((i=1;i<=100;i++));do # thred
+         echo
+	 done >&4
+	 SAVEIFS=$IFS
+	 IFS=$'\n'
+#	 for i in `cat $output_dir/command`
+	 for i in `cat $output_dir/$file`
+	 do
+	 read
+	   (eval ${i};echo >&4 ) &
+	   done <&4
+	   IFS=$SAVEIFS
+	   wait
+	   exec 4>&-
+  fi
+done
+##path-search
+for file_a in $output_dir/*;
+do
+	temp_file=`basename $file_a`
+	Dir=$output_dir/$temp_file
+
+	if [ -d $Dir ];then
+	  ls $Dir > $output_dir/gr_list
+#	  echo "Processing chromosome:" $temp_file "..."
+	  $shellpath/src/bin/transmeta_path_search $output_dir/gr_list $output_dir/$temp_file $output_dir $strand >> $output_dir/log
+	  rm $output_dir/gr_list
+	fi
+done
+
+$shellpath/TransMetaMerge -B $BamFiles -s $strand -o $output_dir --thread $thread --min_indiv_trans_cov $individual_coverage --min_meta_trans_cov $coverage --AG $annotation

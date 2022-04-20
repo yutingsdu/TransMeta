@@ -1,0 +1,246 @@
+#!/bin/bash
+shellpath=`dirname $0`
+output_dir=transmeta_outdir
+BamFiles="No_input"
+annotation="No_input"
+reference=Ref
+output_dir=transmeta_outdir
+IndexDir="NO_index"
+strand=unstranded
+
+MinAverageCov=0.03 #--min-average-junc-ratio 
+MinUnbalanceCov=0.03 #--min-unbalance-ratio
+Gap=200 #--min-gap-length
+TransLen=500
+individual_coverage=1.5
+coverage=2
+thread=1
+# parse options:
+RET=`getopt -o hvB:o:g:R:s:d:D:L:e:c:p:i: \
+--long help,version,bam:,output_dir:,AG:,\
+ref_gtf:,strand:,\
+min_average_frac:,min_unbalance_frag:,min_trans_length:,\
+min_gap_length:,min_meta_trans_cov:,\
+thread:,min_indiv_trans_cov:\
+  -n ' * ERROR' -- "$@"`
+
+#MinAverageCov=0.03 #--min-average-junc-ratio 
+#MinUnbalanceCov=0.03 #--min-unbalance-ratio
+#Gap=200 #--min-gap-length
+#TransLen=500
+
+# Note the quotes around $RET: they are essential!
+eval set -- "$RET"
+# set option values
+while true; do
+    case "$1" in
+        -h | --help ) usage; exit 1;;
+        -v | --version ) echo "** The current version of TransMeta is v.1.0 **"; exit 1;;
+        -o | --output_dir) output_dir=$2     
+			shift 2 ;;
+        -B | --bam) 	   BamFiles=$2 
+			shift 2 ;;
+	-g | --AG) 	   annotation=$2  
+			shift 2 ;;
+	-R | --ref_gtf) reference=$2  
+			shift 2 ;;
+	-s | --strand) 	   strand=$2  
+			shift 2 ;;
+	-d | --min_average_frac) MinAverageCov=$2 
+			shift 2 ;;
+	-D | --min_unbalance_frac) MinUnbalanceCov=$2
+			shift 2 ;;
+	-L | --min_trans_length) TransLen=$2 
+			shift 2 ;;
+	-e | --min_gap_length) Gap=$2 
+			shift 2 ;;
+	-c | --min_meta_trans_cov) coverage=$2 
+			shift 2 ;;
+	-i | --min_indiv_trans_cov) individual_coverage=$2 
+			shift 2 ;;
+	-p | --thread) thread=$2 
+			shift 2 ;;
+        -- ) shift; break ;;
+        * ) echoerror "internal error!" ; exit 1 ;;
+     esac
+done
+echo $coverage $individual_coverage $annotation
+if [ $BamFiles == "No_input" ]; then
+         echo "    "
+         echo "[Error] : BAM input file is not provided!"
+         echo "    "
+         exit 1
+fi
+Run(){
+    cat $1 >>$output_dir/log
+ tmpfile=$$.fifo
+ mkfifo $tmpfile
+ exec 4<>$tmpfile
+ rm $tmpfile
+ 
+ for ((i=1;i<=100;i++));do # thred
+         echo
+	 done >&4
+	 SAVEIFS=$IFS
+	 IFS=$'\n'
+	 for i in `cat $1`
+	 do
+	 read
+	   (eval ${i};echo >&4 ) &
+	   done <&4
+	   IFS=$SAVEIFS
+	   wait
+	   exec 4>&-
+
+}
+
+############################ get covered transcripts of each sample ############################
+i=0
+j=0
+while read bam
+do
+    let i=i+1
+    graph=$output_dir"/Graph.bam"$i
+    for file_a in $output_dir/*;
+    do
+           temp_file=`basename $file_a`
+	   Dir=$output_dir/$temp_file
+	   if [ -d $Dir ];then
+	     cat  $Dir"/MyGraph.simplified.bam"$i".graph" >>$graph
+	   fi
+   done
+   echo $shellpath/src/bin/transmeta_cover $graph $output_dir/transmeta-temp.gtf first ">"$output_dir"/bam"$i".temp.gtf" >>$output_dir/commandCover
+   let x=$i%$thread
+   if [ $x = 0 ]; then
+       let j=j+1
+       mv $output_dir/commandCover $output_dir/commandCover$j
+   fi
+done < $BamFiles
+let j=j+1
+mv $output_dir/commandCover $output_dir/commandCover$j 2>$output_dir/log-temp
+for file_a in $output_dir/*;
+do
+  file=`basename $file_a`
+  P=${file:0:12}
+  if [ $P == "commandCover" ]; then
+      Run $output_dir/$file
+  fi
+done
+i=0
+while read bam
+do
+   let i=i+1
+   rm $output_dir"/Graph.bam"$i 
+done < $BamFiles
+
+############################ get transcripts' abundance of each sample ############################
+i=0
+j=0
+while read bam
+do
+    let i=i+1
+    echo $shellpath/src/bin/transmeta_abundance $bam -e -G $output_dir"/bam"$i".temp.gtf" -o $output_dir"/transmeta_abundance.bam"$i -c 0 -f 0 >>$output_dir/commandAbund
+    let x=$i%$thread
+    if [ $x = 0 ]; then
+        let j=j+1
+	mv $output_dir/commandAbund $output_dir/commandAbund$j
+    fi
+done < $BamFiles
+let j=j+1
+mv $output_dir/commandAbund $output_dir/commandAbund$j 2>$output_dir/log-temp
+for file_a in $output_dir/*;
+do
+    file=`basename $file_a`
+    P=${file:0:12}
+    if [ $P == "commandAbund" ]; then
+        Run $output_dir/$file
+    fi
+done
+i=0
+while read bam
+do
+   let i=i+1
+   #rm $output_dir"/bam"$i".temp.gtf" #GR
+done < $BamFiles
+
+############################ get meta-assembly and sample-level-assembly ############################
+SMG=$output_dir"/SimpleMerge.gtf"
+rm $SMG 2>$output_dir/log-temp
+SS=$i
+MyFlag=0
+if [ $strand == "unstranded" ] && [ $SS -ge 15 ] && [ $SS -le 25 ]; then
+    MyFlag=1
+fi
+i=0
+j=0
+while read bam
+do
+    let i=i+1
+    cat $output_dir"/transmeta_abundance.bam"$i".gtf" >>$SMG
+    echo $shellpath/src/bin/transmeta_individual $output_dir"/transmeta_abundance.bam"$i".gtf" $output_dir"/transmeta.info" $output_dir"/transmeta-temp.gtf" $output_dir"/TransMeta.bam"$i".gtf" $individual_coverage $MyFlag>>$output_dir/commandIndiv
+    let x=$i%$thread
+    if [ $x = 0 ]; then
+ 	let j=j+1
+	mv $output_dir/commandIndiv $output_dir/commandIndiv$j
+    fi
+done < $BamFiles
+let j=j+1
+mv $output_dir/commandIndiv $output_dir/commandIndiv$j 2>$output_dir/log-temp
+
+SampleSize=$i
+
+cp $output_dir"/transmeta-temp.gtf" $output_dir"/TransMeta-0.gtf"
+$shellpath/src/bin/transmeta_merge $SMG $output_dir"/transmeta.info" $output_dir"/transmeta-temp.gtf" $output_dir"/TransMeta.gtf" $coverage $SampleSize
+$shellpath/src/bin/transmeta_merge $SMG $output_dir"/transmeta.info" $output_dir"/transmeta-temp.gtf" $output_dir"/TransMeta-0.5.gtf" 0.5 $SampleSize
+$shellpath/src/bin/transmeta_merge $SMG $output_dir"/transmeta.info" $output_dir"/transmeta-temp.gtf" $output_dir"/TransMeta-1.gtf" 1 $SampleSize
+$shellpath/src/bin/transmeta_merge $SMG $output_dir"/transmeta.info" $output_dir"/transmeta-temp.gtf" $output_dir"/TransMeta-5.gtf" 5 $SampleSize
+$shellpath/src/bin/transmeta_merge $SMG $output_dir"/transmeta.info" $output_dir"/transmeta-temp.gtf" $output_dir"/TransMeta-10.gtf" 10 $SampleSize
+$shellpath/src/bin/transmeta_merge $SMG $output_dir"/transmeta.info" $output_dir"/transmeta-temp.gtf" $output_dir"/TransMeta-20.gtf" 20 $SampleSize
+$shellpath/src/bin/transmeta_merge $SMG $output_dir"/transmeta.info" $output_dir"/transmeta-temp.gtf" $output_dir"/TransMeta-30.gtf" 30 $SampleSize
+$shellpath/src/bin/transmeta_merge $SMG $output_dir"/transmeta.info" $output_dir"/transmeta-temp.gtf" $output_dir"/TransMeta-50.gtf" 50 $SampleSize
+$shellpath/src/bin/transmeta_merge $SMG $output_dir"/transmeta.info" $output_dir"/transmeta-temp.gtf" $output_dir"/TransMeta-80.gtf" 80 $SampleSize
+$shellpath/src/bin/transmeta_merge $SMG $output_dir"/transmeta.info" $output_dir"/transmeta-temp.gtf" $output_dir"/TransMeta-100.gtf" 100 $SampleSize
+$shellpath/src/bin/transmeta_merge $SMG $output_dir"/transmeta.info" $output_dir"/transmeta-temp.gtf" $output_dir"/TransMeta-150.gtf" 150 $SampleSize
+
+for file_a in $output_dir/*;
+do
+    file=`basename $file_a`
+    P=${file:0:12}
+    if [ $P == "commandIndiv" ]; then
+        Run $output_dir/$file
+    fi
+done
+
+i=0
+while read bam
+do
+   let i=i+1
+   #rm $output_dir"/transmeta_abundance.bam"$i".gtf" #GR
+done < $BamFiles
+for file_a in $output_dir/*;
+do
+    file=`basename $file_a`
+    P=${file:0:7}
+    if [ $P == "command" ]; then
+ 	rm $output_dir/$file
+    fi
+done
+#rm $SMG #GR
+rm $output_dir/log-temp
+
+############################ annotation guided  meta-assembly ############################
+if [ $annotation != "No_input" ]; then
+    $shellpath/src/bin/transmeta_AG_assembly $output_dir"/TransMeta-0.gtf" $annotation $output_dir"/TransMeta-AG-0.gtf"
+    $shellpath/src/bin/transmeta_AG_assembly $output_dir"/TransMeta-0.5.gtf" $annotation $output_dir"/TransMeta-AG-0.5.gtf"
+    $shellpath/src/bin/transmeta_AG_assembly $output_dir"/TransMeta-1.gtf" $annotation $output_dir"/TransMeta-AG-1.gtf"
+    $shellpath/src/bin/transmeta_AG_assembly $output_dir"/TransMeta.gtf" $annotation $output_dir"/TransMeta-AG.gtf"
+    $shellpath/src/bin/transmeta_AG_assembly $output_dir"/TransMeta-5.gtf" $annotation $output_dir"/TransMeta-AG-5.gtf"
+    $shellpath/src/bin/transmeta_AG_assembly $output_dir"/TransMeta-10.gtf" $annotation $output_dir"/TransMeta-AG-10.gtf"
+    $shellpath/src/bin/transmeta_AG_assembly $output_dir"/TransMeta-20.gtf" $annotation $output_dir"/TransMeta-AG-20.gtf"
+    $shellpath/src/bin/transmeta_AG_assembly $output_dir"/TransMeta-30.gtf" $annotation $output_dir"/TransMeta-AG-30.gtf"
+    $shellpath/src/bin/transmeta_AG_assembly $output_dir"/TransMeta-50.gtf" $annotation $output_dir"/TransMeta-AG-50.gtf"
+    $shellpath/src/bin/transmeta_AG_assembly $output_dir"/TransMeta-80.gtf" $annotation $output_dir"/TransMeta-AG-80.gtf"
+    $shellpath/src/bin/transmeta_AG_assembly $output_dir"/TransMeta-100.gtf" $annotation $output_dir"/TransMeta-AG-100.gtf"
+    $shellpath/src/bin/transmeta_AG_assembly $output_dir"/TransMeta-150.gtf" $annotation $output_dir"/TransMeta-AG-150.gtf"
+fi
+

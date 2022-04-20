@@ -3,7 +3,9 @@ Description
 
 TransMeta is an assembler that can simultaneously assemble RNA-seq reads of multiple samples. TransMeta can output a unified set of meta-annotations(GTF format) for all samples in an RNA-seq experiment and use the information from all the samples to generate a set of transcripts for each individual sample. TransMeta constructs the novel vector-weighted splicing graph model, in which the edges and nodes are weighted by vectors rather than single numbers with the element in kth position of the vectors being the corresponding weight in sample k. And TransMeta employs a cosine-similarity based combing strategy and label setting algorithm to recover the transcripts. TransMeta takes a file that lists the alignment files(Bam format) of multiple RNA-seq samples as input, and outputs all assembled candidate transcripts in GTF format. 
 
-The software has been developed to be user-friendly.And it is free to use, modify, redistribute without any restrictions, except including the license provided with the distribution.
+The software has been developed to be user-friendly, which could be downloaded from https://github.com/yutingsdu/TransMeta
+
+And it is free to use, modify, redistribute without any restrictions, except including the license provided with the distribution.
 
 
 Installation
@@ -115,8 +117,8 @@ Prerequisites
         #
         ##########################################################################
 
-    If the TransMeta is installed successfully, you'll see the following 6 executable files in TransMeta-v.1.0/src/bin/
-    TransMeta_abundance, TransMeta_cover, TransMeta_graph, TransMeta_merge, TransMeta_path_search, TransMeta_individual.
+    If the TransMeta is installed successfully, you'll see the following 7 executable files in TransMeta-v.1.0/src/bin/
+    transmeta_abundance, transmeta_cover, transmeta_graph, transmeta_merge, transmeta_path_search, transmeta_individual, and transmeta_AG_assembly.
 
 # 4. Running TransMeta
 
@@ -138,7 +140,7 @@ Prerequisites
 
     b) The executable TransMeta is in the TransMeta-v.1.0 directory
 
-        $ TransMeta -B bamFile_list -s first -o TransMeta_outdir
+        $ TransMeta -B bamFile_list -s first -o TransMeta_outdir -p 10
 
         where the bamFile_list is a file that lists the alignments BAM files (one per line) of multiple samples.
 
@@ -147,7 +149,7 @@ Prerequisites
 
     To test if you have succesfully installed TransMeta, please download the demo data set from 
       
-    https://sourceforge.net/projects/transassembly/files/TransMeta/DemoData/. 
+    https://sourceforge.net/projects/transmeta/files/DemoData/. 
 
     At this website you will see two alignments files of two samples(sample1.bam and sample2.bam)
 
@@ -163,13 +165,13 @@ Prerequisites
 
 ===========================================================================
 
-TransMeta v.1.0 usage:
+    TransMeta v.1.0 usage:
 
-** Required **
+    ** Required **
 
---bam/-B <string>		: path to the file listing the alignments BAM files (one per line)
+    --bam/-B <string>		: path to the file listing the alignments BAM files (one per line)
 
---strand/-s <string> 		: Strand-specific RNA-Seq reads orientation.
+    --strand/-s <string> 		: Strand-specific RNA-Seq reads orientation.
 
 			   If reads are paired:
 				    1) Use <unstranded> to indicate RNA-seq reads are non-strand-specific.
@@ -183,25 +185,28 @@ TransMeta v.1.0 usage:
 
 ---------------------------------------------------------------------------
 
-** Options **
+    ** Options **
 
-    --help/-h			: Output TransMeta Help Information
+    --help/-h			  : Output TransMeta Help Information.
 
-    --version/-v			: Print current version of TransMeta
+    --version/-v			  : Print current version of TransMeta.
 
-    --output_dir/-o <string>	: Output path, default: TransMeta_outdir
+    --output_dir/-o <string>	  : Output path, default: transmeta_outdir.
 
-    --min_trans_cov/-c <float> 	: Minimum expression level estimated by abundance analysis for output, default: >0.
+    --min_meta_trans_cov/-c <float>	  : Minimum expression level estimated by abundance analysis for the meta_assembly, default: 2.0.
+				  (Please Note: TransMeta automatically outputs assemblies with different expression levels in the output_dir)
 
-    --min_trans_length/-L <int>   	: Minimum assembled transcript length, default: 500.
+    --min_indiv_trans_cov/-i <float>  : Minimum expression level estimated by abundance analysis for the certain assembly of each sample, default: 1.5.
 
-    --min_average_frac/-d <float> 	: Minimum junction coverage fraction by average junction coverage, default: 0.03.
+    --annotation_reference/-g <string>: reference annotation to use for guiding the assembly process (GTF).
 
-    --min_unbalance_frac/-D <float> : Minimum fraction of unbalanced junction, default: 0.03.
+    --min_trans_length/-L <int>   	  : Minimum assembled transcript length, default: 500.
 
-    --min_gap_length/-e <int>   	: Minimum gap length between two exons, default: 200.
+    --min_average_frac/-d <float> 	  : Minimum junction coverage fraction by average junction coverage, default: 0.03.
 
-    --thread/-p <int> 		: Number of threads to use (default: 2)
+    --min_unbalance_frac/-D <float>   : Minimum fraction of unbalanced junction, default: 0.03.
+
+    --thread/-p <int> 		  : Number of threads to use default: 1.
 
 ---------------------------------------------------------------------------
 
