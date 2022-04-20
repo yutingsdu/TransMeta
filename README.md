@@ -159,7 +159,7 @@ Prerequisites
 
         $ ./run_me.sh
 
-    If you get the TransMeta_outdir/TransMeta.gtf, congratulations, you have succesfully installed the TransMeta.
+    If you get the transmeta_outdir/TransMeta.gtf, congratulations, you have succesfully installed the TransMeta.
 
 
 
