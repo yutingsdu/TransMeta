@@ -160,7 +160,7 @@ i=0
 while read bam
 do
    let i=i+1
-   #rm $output_dir"/bam"$i".temp.gtf" #GR
+   rm $output_dir"/bam"$i".temp.gtf" #GR 5.25
 done < $BamFiles
 
 ############################ get meta-assembly and sample-level-assembly ############################
@@ -215,7 +215,7 @@ i=0
 while read bam
 do
    let i=i+1
-   #rm $output_dir"/transmeta_abundance.bam"$i".gtf" #GR
+   rm $output_dir"/transmeta_abundance.bam"$i".gtf" #GR 5.25
 done < $BamFiles
 for file_a in $output_dir/*;
 do
