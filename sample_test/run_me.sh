@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-## Please first dowload the demo data from https://sourceforge.net/projects/transassembly/files/Gingko/DemoData/
+## Please first dowload the demo data from https://sourceforge.net/projects/transmeta/files/DemoData/
 
 # !!!!!!!!!!!!!! IMPORTANT !!!!!!!!!!!!!!!!!!
 
