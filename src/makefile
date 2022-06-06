@@ -2,7 +2,7 @@
 # LIBRARY SETTINGS - SET AS NECESSARY
 # 
 # For recent versions of BamTools (>= 2.5):
-#
+
 BOOST_PATH ?= /your/boost/dir
 BAMTOOLS_PATH ?= /your/bamtools/dir
 BOOST_INCLUDE = $(BOOST_PATH)/include
