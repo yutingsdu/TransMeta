@@ -113,7 +113,7 @@ Prerequisites
         # if you installed boost in /home/yuting/local/boost and 
         # installe bamtools in /home/yuting/local/bamtools, the command is :
         #
-        # $ make all BOOST_PATH=/home/yuting/local/boost BAMTOOLS_PATH=/home/yuting/local/bamtools
+        # $ make all release BOOST_PATH=/home/yuting/local/boost BAMTOOLS_PATH=/home/yuting/local/bamtools
         #
         ##########################################################################
 
