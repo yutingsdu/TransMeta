@@ -98,7 +98,7 @@ Prerequisites
 
 # 3. Building TransMeta
 
-    Change to the TransMeta-v.1.0/src directory and make
+    Change to the TransMeta/src directory and make
 
         $ cd src
         $ make all release BOOST_PATH=/your/boost/dir BAMTOOLS_PATH=/your/bamtools/dir
@@ -138,7 +138,7 @@ Prerequisites
         #
         ##########################################################################
 
-    b) The executable TransMeta is in the TransMeta-v.1.0 directory
+    b) The executable TransMeta is in the TransMeta/ directory
 
         $ TransMeta -B bamFile_list -s first -o TransMeta_outdir -p 10
 
@@ -153,7 +153,7 @@ Prerequisites
 
     At this website you will see two alignments files of two samples(sample1.bam and sample2.bam)
 
-    Put the Hisat.bam and Star.bam in the directory TransMeta-v.1.0/sample_test/ and change to TransMeta-v.1.0/sample_test/
+    Put the sample1.bam and sample2.bam in the directory TransMeta/sample_test/ and change to TransMeta/sample_test/
 
     Type the following command:
 
