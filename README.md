@@ -101,7 +101,7 @@ Prerequisites
     Change to the TransMeta-v.1.0/src directory and make
 
         $ cd src
-        $ make all BOOST_PATH=/your/boost/dir BAMTOOLS_PATH=/your/bamtools/dir
+        $ make all release BOOST_PATH=/your/boost/dir BAMTOOLS_PATH=/your/bamtools/dir
 
         where BOOST_PATH is the aformentioned directory where you installed the boost 
         and BAMTOOLS_PATH is the directory where you installed the bamtools.
