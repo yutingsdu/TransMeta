@@ -214,6 +214,7 @@ class Assembler {
 	    //strand_note = TU.strand_note;
 
 	    tu_readid_pairInfo_map = TU.tu_readid_pairInfo_map;
+	    return *this;//issue1 
 	    //Gene_sequence = TU.Gene_sequence;
 	  }
 
