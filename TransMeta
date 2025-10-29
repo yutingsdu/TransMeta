@@ -14,6 +14,7 @@ Filter=0 # 0.5
 Gap=200 #--min-gap-length
 TransLen=500
 individual_coverage=1.5
+report_sample_cov="NO"
 coverage=2
 usage()
 {
@@ -48,6 +49,7 @@ TransMeta v.1.0 usage:
 
 --output_dir/-o <string>	  : Output path, default: transmeta_outdir.
 
+
 --min_meta_trans_cov/-c <float>	  : Minimum expression level estimated by abundance analysis for the meta_assembly, default: 2.0.
 				  (Please Note: TransMeta automatically outputs assemblies with different expression levels in the output_dir)
 
@@ -63,17 +65,22 @@ TransMeta v.1.0 usage:
 
 --thread/-p <int> 		  : Number of threads to use default: 1.
 
+--report_sample_abundance	  : Output the abundance for each individual sample, default: false.
+
 ---------------------------------------------------------------------------
+** Typical commands for using TransMeta **
 
-** Typical commands **
+  (i) For paired-end RNA-seq data:
 
-(i) A typical TransMeta command for paired-end data might be:
+    TransMeta -B bamFiles_list -s first -o TransMeta_outdir -p 25
 
-  TransMeta -B bamFiles_list -s first -o TransMeta_outdir -p 25
+  (ii) For single-end RNA-seq data:
 
-(ii) A typical TransMeta command for single-end data might be:
-
-  TransMeta -B bamFiles_list -s single_reverse -o TransMeta_outdir -p 25
+    TransMeta -B bamFiles_list -s single_reverse -o TransMeta_outdir -p 25
+    
+  (iii) To output the abundance for each individual sample:
+    
+    TransMeta -B bamFiles_list -s first -o TransMeta_outdir -p 25 --report_sample_abundance
 
 ===========================================================================
 EOT
@@ -81,12 +88,13 @@ EOT
 #usage
 
 # parse options:
-RET=`getopt -o hvB:o:g:s:d:D:L:e:c:p:i: \
+RET=`getopt -o hvB:o:g:s:d:D:L:e:c:p:i:A \
 --long help,version,bam:,output_dir:,annotation:,\
 strand:,\
 min_average_frac:,min_unbalance_frag:,min_trans_length:,\
 min_gap_length:,min_meta_trans_cov:,min_indiv_trans_cov:,\
-thread:\
+thread:,\
+report_sample_abundance\
   -n ' * ERROR' -- "$@"`
 
 
@@ -121,12 +129,15 @@ while true; do
 			shift 2 ;;
 	-p | --thread) thread=$2 
 			shift 2 ;;
+	-A | --report_sample_abundance) report_sample_cov="YES" 
+			shift 1 ;;
         -- ) shift; break ;;
         * ) echoerror "internal error!" ; exit 1 ;;
      esac
 done
 
-#echo $coverage $individual_coverage $annotation
+#echo $coverage $individual_coverage $annotation $report_sample_cov
+#exit
 
 if [ $BamFiles == "No_input" ]; then
          echo "    "
@@ -218,4 +229,8 @@ do
 	fi
 done
 
-$shellpath/TransMetaMerge -B $BamFiles -s $strand -o $output_dir --thread $thread --min_indiv_trans_cov $individual_coverage --min_meta_trans_cov $coverage --AG $annotation
+if [ $report_sample_cov == "NO" ]; then
+	$shellpath/TransMetaMerge -B $BamFiles -s $strand -o $output_dir --thread $thread --min_indiv_trans_cov $individual_coverage --min_meta_trans_cov $coverage --AG $annotation
+else
+	$shellpath/TransMetaMerge -B $BamFiles -s $strand -o $output_dir --thread $thread --min_indiv_trans_cov $individual_coverage --min_meta_trans_cov $coverage --AG $annotation --report_sample_abundance
+fi
