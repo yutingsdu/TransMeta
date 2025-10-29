@@ -98,10 +98,10 @@ Prerequisites
 
 # 3. Building TransMeta
 
-    Change to the TransMeta/src directory and make
+    Change to the TransMeta-v.1.0/src directory and make
 
         $ cd src
-        $ make all release BOOST_PATH=/your/boost/dir BAMTOOLS_PATH=/your/bamtools/dir
+        $ make all BOOST_PATH=/your/boost/dir BAMTOOLS_PATH=/your/bamtools/dir
 
         where BOOST_PATH is the aformentioned directory where you installed the boost 
         and BAMTOOLS_PATH is the directory where you installed the bamtools.
@@ -113,7 +113,7 @@ Prerequisites
         # if you installed boost in /home/yuting/local/boost and 
         # installe bamtools in /home/yuting/local/bamtools, the command is :
         #
-        # $ make all release BOOST_PATH=/home/yuting/local/boost BAMTOOLS_PATH=/home/yuting/local/bamtools
+        # $ make all BOOST_PATH=/home/yuting/local/boost BAMTOOLS_PATH=/home/yuting/local/bamtools
         #
         ##########################################################################
 
@@ -138,7 +138,7 @@ Prerequisites
         #
         ##########################################################################
 
-    b) The executable TransMeta is in the TransMeta/ directory
+    b) The executable TransMeta is in the TransMeta-v.1.0 directory
 
         $ TransMeta -B bamFile_list -s first -o TransMeta_outdir -p 10
 
@@ -153,7 +153,7 @@ Prerequisites
 
     At this website you will see two alignments files of two samples(sample1.bam and sample2.bam)
 
-    Put the sample1.bam and sample2.bam in the directory TransMeta/sample_test/ and change to TransMeta/sample_test/
+    Put the Hisat.bam and Star.bam in the directory TransMeta-v.1.0/sample_test/ and change to TransMeta-v.1.0/sample_test/
 
     Type the following command:
 
@@ -207,19 +207,24 @@ Prerequisites
     --min_unbalance_frac/-D <float>   : Minimum fraction of unbalanced junction, default: 0.03.
 
     --thread/-p <int> 		  : Number of threads to use default: 1.
+    
+    --report_sample_abundance	  : Output the abundance for each individual sample, default: false.
 
 ---------------------------------------------------------------------------
 
-** Typical commands **
+** Typical commands for using TransMeta **
 
-  (i) A typical TransMeta command for paired-end data might be:
+  (i) For paired-end RNA-seq data:
 
     TransMeta -B bamFiles_list -s first -o TransMeta_outdir -p 25
 
-  (ii) A typical TransMeta command for single-end data might be:
+  (ii) For single-end RNA-seq data:
 
     TransMeta -B bamFiles_list -s single_reverse -o TransMeta_outdir -p 25
-
+    
+  (iii) To output the abundance for each individual sample:
+    
+    TransMeta -B bamFiles_list -s first -o TransMeta_outdir -p 25 --report_sample_abundance
 ===========================================================================
 
 
@@ -228,5 +233,5 @@ Authors: Ting Yu designed and wrote TransMeta.
 Contact:
  Any questions, problems, bugs are welcome and should be dumped to
  Ting Yu <yutingsdu@163.com>
- Created on Apr 20, 2022.
+ Created on Aug 29, 2025.
 
