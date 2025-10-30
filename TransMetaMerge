@@ -262,7 +262,16 @@ if [ $report_sample_cov == "YES" ]; then
 	let i=i+1	
 	mv $output_dir"/TransMeta.bam"$i".abd.gtf" $output_dir"/TransMeta.bam"$i".gtf"
     done < $BamFiles
-    rm $output_dir/commandAbund
+    for file_a in $output_dir/*;
+    do
+	    file=`basename $file_a`
+	    P=${file:0:7}
+	    if [ $P == "command" ]; then
+		    rm $output_dir/$file
+	    fi
+    done
+    rm $output_dir/log-temp
+    rm $output_dir/log
 fi
 ############################ annotation guided  meta-assembly ############################
 if [ $annotation != "No_input" ]; then
